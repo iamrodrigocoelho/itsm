@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    font-family: theme('fontFamily.sans');
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    /* {colors.canvas} as system anchor — NEVER pure white */
+    @apply bg-canvas text-ink text-body;
+  }
+
+  /* Scroll behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Focus ring — keyboard navigation (WCAG 2.1 AA) */
+  :focus-visible {
+    outline: 2px solid theme('colors.ink');
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Components — DESIGN.md §Components ──────────────────────────────────── */
+@layer components {
+
+  /* ── Buttons ── */
+
+  /* button-primary: charcoal CTA — the default primary across all pages */
+  .btn-primary {
+    @apply inline-flex items-center justify-center
+           bg-ink text-on-primary
+           text-button font-medium font-sans
+           px-[18px] py-[10px]
+           rounded-md
+           min-h-touch
+           transition-opacity
+           hover:opacity-90 active:opacity-80;
+    /* No Fin Orange, no pill-rounded — per DESIGN.md Do's and Don'ts */
+  }
+
+  /* button-secondary: white on cream with hairline */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center
+           bg-surface-1 text-ink
+           text-button font-medium font-sans
+           px-[18px] py-[10px]
+           rounded-md border border-hairline
+           min-h-touch
+           transition-colors
+           hover:bg-surface-2 active:bg-surface-2;
+  }
+
+  /* button-tertiary: plain text on canvas */
+  .btn-tertiary {
+    @apply inline-flex items-center justify-center
+           bg-canvas text-ink
+           text-button font-medium font-sans
+           px-[18px] py-[10px]
+           rounded-md
+           min-h-touch
+           transition-opacity
+           hover:opacity-70 active:opacity-60;
+  }
+
+  /* button-fin: Fin Orange — ONLY for Fin AI product CTAs */
+  .btn-fin {
+    @apply inline-flex items-center justify-center
+           bg-fin-orange text-on-primary
+           text-button font-medium font-sans
+           px-[18px] py-[10px]
+           rounded-md
+           min-h-touch
+           transition-opacity
+           hover:opacity-90 active:opacity-80;
+  }
+
+  /* ── Form Inputs ── */
+
+  /* text-input: DESIGN.md §Inputs & Forms */
+  .text-input {
+    @apply w-full
+           bg-surface-1 text-ink placeholder:text-ink-subtle
+           text-body font-sans
+           px-[14px] py-[10px]
+           rounded-md border border-hairline
+           min-h-touch-input
+           transition-colors
+           focus:outline-none focus:border-ink;
+    /* {rounded.md} + {colors.surface-1} + min 44px height per touch target spec */
+  }
+
+  /* text-input-focused: applied programmatically */
+  .text-input-focused {
+    @apply text-input border-ink;
+  }
+
+  /* ── Cards ── */
+
+  /* pricing-card: DESIGN.md §Cards */
+  .pricing-card {
+    @apply bg-surface-1 text-ink
+           rounded-lg border border-hairline
+           p-spacing-lg;
+    /* {colors.surface-1} + {rounded.lg} + padding {spacing.lg} 24px — no shadow */
+  }
+
+  /* pricing-card-featured: inverted (charcoal) */
+  .pricing-card-featured {
+    @apply bg-ink text-on-primary
+           rounded-lg
+           p-spacing-lg;
+  }
+
+  /* feature-card */
+  .feature-card {
+    @apply bg-surface-1 text-ink
+           rounded-lg border border-hairline
+           p-spacing-lg;
+  }
+
+  /* product-mockup-card: protagonist card — larger radius */
+  .product-mockup-card {
+    @apply bg-surface-1 text-ink
+           rounded-xl border border-hairline
+           p-spacing-lg overflow-hidden;
+    /* {rounded.xl} 16px — no drop shadow, lift via white-on-cream */
+  }
+
+  /* testimonial-card */
+  .testimonial-card {
+    @apply bg-surface-1 text-ink
+           rounded-lg border border-hairline
+           p-spacing-xl;
+  }
+
+  /* startup-discount-card: tinted surface */
+  .startup-discount-card {
+    @apply bg-surface-2 text-ink
+           rounded-lg border border-hairline
+           p-spacing-xl;
+  }
+
+  /* cta-banner: full-width CTA panel */
+  .cta-banner {
+    @apply bg-surface-1 text-ink
+           rounded-lg border border-hairline
+           p-spacing-xxl;
+  }
+
+  /* ── Status Chips ── */
+  /* DESIGN.md §5.2.3 + ITSM Seção 5.2.3 */
+  /* {rounded.xs} 4px, {typography.caption} 12px, weight 500, padding 4×8 */
+
+  .chip {
+    @apply inline-flex items-center gap-1
+           text-caption font-medium font-sans
+           px-2 py-1
+           rounded-xs border;
+  }
+
+  .chip-aguardando-aprovacao {
+    @apply chip border-report-blue text-report-blue;
+  }
+
+  .chip-aprovado {
+    @apply chip border-ink-muted text-ink-muted;
+  }
+
+  .chip-em-processamento {
+    @apply chip border-report-cyan text-report-cyan;
+  }
+
+  .chip-concluido {
+    @apply chip border-semantic-success text-semantic-success;
+  }
+
+  .chip-rejeitado {
+    @apply chip border-semantic-error text-semantic-error;
+  }
+
+  .chip-cancelado {
+    @apply chip border-ink-tertiary text-ink-tertiary;
+  }
+
+  .chip-falha-integracao {
+    @apply chip border-semantic-error text-semantic-error;
+  }
+
+  .chip-rascunho {
+    @apply chip border-ink-subtle text-ink-subtle;
+  }
+
+  /* ── Navigation ── */
+
+  /* top-nav: sticky cream bar 56px */
+  .top-nav {
+    @apply sticky top-0 z-50
+           bg-canvas border-b border-hairline-soft
+           h-14 flex items-center px-spacing-lg;
+    /* height 56px = h-14 (14 * 4px); {colors.canvas} background */
+  }
+
+  /* ── FAQ Row ── */
+  .faq-row {
+    @apply bg-canvas text-ink
+           text-body font-sans
+           rounded-md
+           px-spacing-lg py-spacing-lg
+           border-b border-hairline-soft;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    @apply bg-canvas text-ink-muted
+           text-caption font-sans
+           px-[32px] py-[64px];
+  }
+
+  /* ── Avatar ── */
+  .avatar {
+    @apply rounded-full overflow-hidden bg-surface-2
+           w-10 h-10 flex items-center justify-center;
+    /* {rounded.full} 40px — no shadow */
+  }
+}

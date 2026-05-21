@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────────
+
+enum Role {
+  COLABORADOR
+  GESTOR
+  ANALISTA_TI
+  AUDITOR
+  ADMIN
+}
+
+enum UserStatus {
+  ATIVO
+  INATIVO
+}
+
+enum TicketStatus {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  APROVADO
+  EM_PROCESSAMENTO
+  CONCLUIDO
+  REJEITADO
+  CANCELADO
+  FALHA_INTEGRACAO
+}
+
+// ─── Models ────────────────────────────────────────────────────────────────────
+
+model User {
+  id               String      @id @default(uuid())
+  matricula        String      @unique
+  nome             String
+  email            String      @unique
+  passwordHash     String
+  role             Role        @default(COLABORADOR)
+  status           UserStatus  @default(ATIVO)
+
+  // Hierarchy
+  managerId        String?
+  manager          User?       @relation("Manages", fields: [managerId], references: [id])
+  liderados        User[]      @relation("Manages")
+
+  // Contact
+  cpf              String?
+  telefone         String?
+
+  // CASI mirror
+  codDominio       Int
+  codEmpresa       Int
+  codLojaAtual     Int
+
+  // Security
+  passwordChangedAt  DateTime?
+  mustChangePassword Boolean   @default(true)
+  lastLoginAt        DateTime?
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  // Relations
+  ticketsAsRequester Ticket[]  @relation("Requester")
+  ticketsAsApprover  Ticket[]  @relation("Approver")
+  auditLogs          AuditLog[] @relation("Actor")
+  csvImportJobs      CsvImportJob[]
+
+  @@index([managerId])
+  @@index([email])
+  @@index([matricula])
+  @@map("users")
+}
+
+model ServiceCatalog {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  nome        String
+  descricao   String
+  categoria   String?
+  icone       String?
+  ativo       Boolean   @default(true)
+  formSchema  Json
+  workflow    Json
+  integration String?
+
+  tickets     Ticket[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("service_catalogs")
+}
+
+model Ticket {
+  id              String         @id @default(uuid())
+  numero          Int            @unique @default(autoincrement())
+
+  catalogId       String
+  catalog         ServiceCatalog @relation(fields: [catalogId], references: [id])
+
+  requesterId     String
+  requester       User           @relation("Requester", fields: [requesterId], references: [id])
+
+  approverId      String?
+  approver        User?          @relation("Approver", fields: [approverId], references: [id])
+
+  status          TicketStatus   @default(AGUARDANDO_APROVACAO)
+  formData        Json
+  approvalComment String?
+  rejectionReason String?
+
+  integrationLog      Json?
+  integrationAttempts Int    @default(0)
+
+  openedAt        DateTime       @default(now())
+  approvedAt      DateTime?
+  completedAt     DateTime?
+  rejectedAt      DateTime?
+  cancelledAt     DateTime?
+
+  history         TicketHistory[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([approverId])
+  @@index([catalogId])
+  @@index([openedAt])
+  @@map("tickets")
+}
+
+model TicketHistory {
+  id          String        @id @default(uuid())
+  ticketId    String
+  ticket      Ticket        @relation(fields: [ticketId], references: [id])
+  fromStatus  TicketStatus?
+  toStatus    TicketStatus
+  actorId     String?
+  comment     String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("ticket_history")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  entityType  String
+  entityId    String
+  action      String
+  actorUserId String?
+  actor       User?     @relation("Actor", fields: [actorUserId], references: [id])
+  actorIp     String?
+  beforeValue Json?
+  afterValue  Json?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  key         String    @id
+  value       String
+  isSensitive Boolean   @default(false)
+  updatedBy   String?
+  updatedAt   DateTime  @updatedAt
+
+  @@map("system_configs")
+}
+
+model CsvImportJob {
+  id          String    @id @default(uuid())
+  filename    String
+  uploadedBy  String
+  uploadedByUser User?  @relation(fields: [uploadedBy], references: [id])
+  status      String
+  totalRows   Int       @default(0)
+  successRows Int       @default(0)
+  errorRows   Int       @default(0)
+  errorReport Json?
+  createdAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([uploadedBy])
+  @@map("csv_import_jobs")
+}
