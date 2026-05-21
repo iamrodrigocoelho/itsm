@@ -1,6 +1,6 @@
-# ITSM — Conexão Tech
+# ITSM — Venancio
 
-Ferramenta interna de **IT Service Management** com integração à **API CASI** da Conexão Tech. Colaboradores abrem chamados estruturados via catálogo de serviços, com workflow de aprovação pelo gestor direto e execução automática da alteração no CASI.
+Ferramenta interna de **IT Service Management** com integração à **API CASI** da Conexão Tech. Colaboradores abrem chamados via catálogo de serviços, com workflow de aprovação pelo gestor direto e execução automática da alteração no CASI.
 
 **Catálogo V1:** Alteração de filial (loja) do usuário.
 
