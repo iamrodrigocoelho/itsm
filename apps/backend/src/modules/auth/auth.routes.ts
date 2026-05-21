@@ -10,21 +10,23 @@ import { authenticate } from '../../shared/middleware/requireRole.js';
 const prisma = new PrismaClient();
 const authService = new AuthService(prisma);
 
-// Rate limit override for login (stricter than global)
-const LOGIN_RATE_LIMIT = {
-  max: 5,
-  timeWindow: '15 minutes',
-  keyGenerator: (req: FastifyRequest) => {
-    const body = req.body as Record<string, unknown> | null;
-    const email = typeof body?.['email'] === 'string' ? body['email'] : 'unknown';
-    return `ratelimit:login:${email}:${req.ip}`;
-  },
-  errorResponseBuilder: () => ({
-    statusCode: 429,
-    error: 'TOO_MANY_REQUESTS',
-    message: 'Muitas tentativas de login. Tente novamente em 15 minutos.',
-  }),
-};
+// Rate limit override para login — desabilitado em dev para não bloquear testes
+const LOGIN_RATE_LIMIT = process.env['NODE_ENV'] === 'development'
+  ? { max: 1000, timeWindow: '1 minute' }
+  : {
+      max: 5,
+      timeWindow: '15 minutes',
+      keyGenerator: (req: FastifyRequest) => {
+        const body = req.body as Record<string, unknown> | null;
+        const email = typeof body?.['email'] === 'string' ? body['email'] : 'unknown';
+        return `ratelimit:login:${email}:${req.ip}`;
+      },
+      errorResponseBuilder: () => ({
+        statusCode: 429,
+        error: 'TOO_MANY_REQUESTS',
+        message: 'Muitas tentativas de login. Tente novamente em 15 minutos.',
+      }),
+    };
 
 function extractUserIdFromBearer(authHeader: string | undefined): string {
   if (!authHeader?.startsWith('Bearer ')) throw new UnauthorizedError();

@@ -79,19 +79,25 @@ export async function buildApp() {
   });
 
   // Global error handler
-  // Duck-typing em vez de instanceof para compatibilidade com ESM (tsx pode criar identidades de classe distintas)
+  // Usa duck-typing no statusCode para compatibilidade com ESM e erros do @fastify/rate-limit
+  // (que usam a propriedade "error" em vez de "code")
   app.setErrorHandler((error: FastifyError | AppError, _req: FastifyRequest, reply: FastifyReply) => {
-    const appErr = error as AppError;
-    if (typeof appErr.code === 'string' && typeof appErr.statusCode === 'number' && appErr.statusCode >= 400 && appErr.statusCode < 500) {
-      return reply.status(appErr.statusCode).send({
-        statusCode: appErr.statusCode,
-        error: appErr.code,
-        message: appErr.message,
-        ...(appErr.details ? { details: appErr.details } : {}),
+    const statusCode = (error as { statusCode?: number }).statusCode;
+
+    if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+      const code = (error as AppError).code
+        ?? (error as { error?: string }).error
+        ?? 'CLIENT_ERROR';
+      const details = (error as AppError).details;
+      return reply.status(statusCode).send({
+        statusCode,
+        error: code,
+        message: error.message,
+        ...(details ? { details } : {}),
       });
     }
 
-    // Fastify validation errors
+    // Fastify schema validation errors
     if (error.validation) {
       return reply.status(422).send({
         statusCode: 422,
