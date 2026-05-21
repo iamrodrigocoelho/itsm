@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Users, ClipboardList, FileText, LayoutDashboard } from 'lucide-react';
+import { Users, ClipboardList, FileText, LayoutDashboard, Store } from 'lucide-react';
 import type { UserSummaryDto } from '@itsm/shared-types';
 
 interface NavItem {
@@ -21,6 +21,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Usuários',
     icon: <Users size={16} />,
     roles: ['ANALISTA_TI', 'ADMIN'],
+  },
+  {
+    to: '/catalogo',
+    label: 'Catálogo',
+    icon: <Store size={16} />,
+    roles: ['COLABORADOR', 'GESTOR', 'ANALISTA_TI', 'ADMIN'],
   },
   {
     to: '/tickets',

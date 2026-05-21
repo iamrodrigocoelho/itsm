@@ -1,17 +1,17 @@
 import { logger } from '../shared/utils/logger.js';
 import { getRedis } from '../shared/utils/redis.js';
+import { startEmailWorker } from '../modules/notifications/email.service.js';
+import { startCasiWorker } from '../modules/integrations/casi/casi.worker.js';
 
-// BullMQ workers will be registered here in Sprint 4
-logger.info('Worker process starting (Sprint 4: CASI integration worker will be registered here)');
+const emailWorker = startEmailWorker();
+const casiWorker = startCasiWorker();
 
-process.on('SIGTERM', async () => {
-  logger.info('Worker shutting down gracefully');
+const shutdown = async (signal: string) => {
+  logger.info({ signal }, 'Worker process shutting down gracefully');
+  await Promise.all([emailWorker.close(), casiWorker.close()]);
   await getRedis().quit();
   process.exit(0);
-});
+};
 
-process.on('SIGINT', async () => {
-  logger.info('Worker shutting down gracefully');
-  await getRedis().quit();
-  process.exit(0);
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

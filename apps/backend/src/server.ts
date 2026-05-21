@@ -11,6 +11,9 @@ import { AppError } from './shared/errors/AppError.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { usersRoutes } from './modules/users/users.routes.js';
 import { auditRoutes } from './modules/audit/audit.routes.js';
+import { catalogsRoutes } from './modules/catalogs/catalogs.routes.js';
+import { ticketsRoutes } from './modules/tickets/tickets.routes.js';
+import { approvalsRoutes } from './modules/approvals/approvals.routes.js';
 import type { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 
 export async function buildApp() {
@@ -127,6 +130,9 @@ export async function buildApp() {
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(usersRoutes, { prefix: '/users' });
   await app.register(auditRoutes, { prefix: '/audit-logs' });
+  await app.register(catalogsRoutes, { prefix: '/catalogs' });
+  await app.register(ticketsRoutes, { prefix: '/tickets' });
+  await app.register(approvalsRoutes, { prefix: '/tickets' });
 
   return app;
 }

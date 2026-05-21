@@ -99,7 +99,34 @@ export interface CsvImportJobDto {
   finishedAt: string | null;
 }
 
+// Service Catalog
+export interface ServiceCatalogDto {
+  id: string;
+  slug: string;
+  nome: string;
+  descricao: string;
+  categoria: string | null;
+  icone: string | null;
+  ativo: boolean;
+  formSchema: Record<string, unknown>;
+  workflow: Record<string, unknown>;
+  integration: string | null;
+}
+
 // Ticket
+export interface CreateTicketDto {
+  catalogSlug: string;
+  formData: Record<string, unknown>;
+}
+
+export interface ListTicketsQueryDto {
+  page?: number;
+  limit?: number;
+  status?: string | string[];
+  catalogSlug?: string;
+  requesterId?: string;
+}
+
 export interface TicketSummaryDto {
   id: string;
   numero: number;
@@ -113,6 +140,8 @@ export interface TicketSummaryDto {
 }
 
 export interface TicketDetailDto extends TicketSummaryDto {
+  requesterId: string;
+  approverId: string | null;
   formData: Record<string, unknown>;
   approvalComment: string | null;
   rejectionReason: string | null;

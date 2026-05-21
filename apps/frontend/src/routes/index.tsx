@@ -8,6 +8,10 @@ import { NovoUsuarioPage } from '@/pages/admin/NovoUsuarioPage';
 import { EditarUsuarioPage } from '@/pages/admin/EditarUsuarioPage';
 import { ImportarUsuariosPage } from '@/pages/admin/ImportarUsuariosPage';
 import { AuditoriaPage } from '@/pages/admin/AuditoriaPage';
+import { CatalogoPage } from '@/pages/CatalogoPage';
+import { TicketsPage } from '@/pages/TicketsPage';
+import { NovoTicketPage } from '@/pages/NovoTicketPage';
+import { TicketDetailPage } from '@/pages/TicketDetailPage';
 import type { UserSummaryDto } from '@itsm/shared-types';
 
 interface AppRoutesProps {
@@ -75,14 +79,31 @@ export function AppRoutes({ user, onLogout, onPasswordChanged }: AppRoutesProps)
           }
         />
 
-        {/* Tickets placeholder */}
+        {/* Catálogo */}
+        <Route
+          path="/catalogo"
+          element={
+            user ? <CatalogoPage /> : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* Tickets */}
         <Route
           path="/tickets"
           element={
-            <div className="max-w-content">
-              <h1 className="text-headline font-semibold text-ink">Chamados</h1>
-              <p className="mt-spacing-xs text-body text-ink-muted">Em desenvolvimento — Sprint 2.</p>
-            </div>
+            user ? <TicketsPage /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/tickets/novo/:slug"
+          element={
+            user ? <NovoTicketPage user={user} /> : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/tickets/:id"
+          element={
+            user ? <TicketDetailPage user={user} /> : <Navigate to="/login" replace />
           }
         />
 
