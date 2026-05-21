@@ -79,13 +79,15 @@ export async function buildApp() {
   });
 
   // Global error handler
+  // Duck-typing em vez de instanceof para compatibilidade com ESM (tsx pode criar identidades de classe distintas)
   app.setErrorHandler((error: FastifyError | AppError, _req: FastifyRequest, reply: FastifyReply) => {
-    if (error instanceof AppError) {
-      return reply.status(error.statusCode).send({
-        statusCode: error.statusCode,
-        error: error.code,
-        message: error.message,
-        ...(error.details ? { details: error.details } : {}),
+    const appErr = error as AppError;
+    if (typeof appErr.code === 'string' && typeof appErr.statusCode === 'number' && appErr.statusCode >= 400 && appErr.statusCode < 500) {
+      return reply.status(appErr.statusCode).send({
+        statusCode: appErr.statusCode,
+        error: appErr.code,
+        message: appErr.message,
+        ...(appErr.details ? { details: appErr.details } : {}),
       });
     }
 
