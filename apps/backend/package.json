@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --env-file=.env --import=tsx/esm --watch src/server.ts",
+    "dev:worker": "node --env-file=.env --import=tsx/esm --watch src/workers/main.ts",
     "build": "tsc --project tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
@@ -12,9 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate": "node --env-file=.env ./node_modules/.bin/prisma migrate dev",
+    "db:migrate:deploy": "node --env-file=.env ./node_modules/.bin/prisma migrate deploy",
+    "db:seed": "node --env-file=.env --import=tsx/esm prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate"
   },
