@@ -59,8 +59,8 @@ export const authApi = {
   logout: (refreshToken: string) =>
     api.post('/auth/logout', { refreshToken }, { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }),
   refresh: (refreshToken: string) => api.post<RefreshResponseDto>('/auth/refresh', { refreshToken }),
-  changePassword: (currentPassword: string, newPassword: string) =>
-    api.post('/auth/change-password', { currentPassword, newPassword }),
+  changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
+    api.post('/auth/change-password', { currentPassword, newPassword, confirmPassword }),
   me: () => api.get<UserSummaryDto>('/auth/me'),
 };
 

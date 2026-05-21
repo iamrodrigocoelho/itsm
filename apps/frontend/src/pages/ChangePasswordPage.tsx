@@ -43,7 +43,7 @@ export function ChangePasswordPage({ user, onPasswordChanged }: ChangePasswordPa
   const onSubmit = async (data: FormValues) => {
     setServerError('');
     try {
-      await authApi.changePassword(data.currentPassword, data.newPassword);
+      await authApi.changePassword(data.currentPassword, data.newPassword, data.confirmPassword);
       if (user) {
         onPasswordChanged({ ...user, mustChangePassword: false });
       }
