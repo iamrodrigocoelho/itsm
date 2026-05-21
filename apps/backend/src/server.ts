@@ -14,6 +14,7 @@ import { auditRoutes } from './modules/audit/audit.routes.js';
 import { catalogsRoutes } from './modules/catalogs/catalogs.routes.js';
 import { ticketsRoutes } from './modules/tickets/tickets.routes.js';
 import { approvalsRoutes } from './modules/approvals/approvals.routes.js';
+import { reportsRoutes } from './modules/reports/reports.routes.js';
 import type { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 
 export async function buildApp() {
@@ -141,6 +142,7 @@ export async function buildApp() {
   await app.register(catalogsRoutes, { prefix: '/catalogs' });
   await app.register(ticketsRoutes, { prefix: '/tickets' });
   await app.register(approvalsRoutes, { prefix: '/tickets' });
+  await app.register(reportsRoutes, { prefix: '/reports' });
 
   return app;
 }

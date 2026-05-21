@@ -61,6 +61,24 @@ export const ticketsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
+  // GET /tickets/export
+  app.get(
+    '/export',
+    {
+      preHandler: [requireRole('GESTOR', 'ANALISTA_TI', 'AUDITOR', 'ADMIN')],
+      schema: { tags: ['Tickets'], summary: 'Exportar chamados como CSV', security: [{ bearerAuth: [] }] },
+    },
+    async (req, reply) => {
+      const parsed = listTicketsSchema.safeParse(req.query);
+      if (!parsed.success) throw new ValidationError('Parâmetros inválidos', parsed.error.flatten());
+      const csv = await ticketsService.exportCsv(parsed.data, req.jwtUser.sub, req.jwtUser.role);
+      return reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="chamados-${Date.now()}.csv"`)
+        .send('﻿' + csv); // BOM for Excel compatibility
+    },
+  );
+
   // POST /tickets/:id/cancel
   app.post(
     '/:id/cancel',

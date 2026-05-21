@@ -12,6 +12,7 @@ import { CatalogoPage } from '@/pages/CatalogoPage';
 import { TicketsPage } from '@/pages/TicketsPage';
 import { NovoTicketPage } from '@/pages/NovoTicketPage';
 import { TicketDetailPage } from '@/pages/TicketDetailPage';
+import { DashboardPage } from '@/pages/DashboardPage';
 import type { UserSummaryDto } from '@itsm/shared-types';
 
 interface AppRoutesProps {
@@ -71,12 +72,7 @@ export function AppRoutes({ user, onLogout, onPasswordChanged }: AppRoutesProps)
         {/* Dashboard — all authenticated roles */}
         <Route
           path="/"
-          element={
-            <div className="max-w-content">
-              <h1 className="text-headline font-semibold text-ink">Dashboard</h1>
-              <p className="mt-spacing-xs text-body text-ink-muted">Em desenvolvimento — Sprint 5.</p>
-            </div>
-          }
+          element={user ? <DashboardPage /> : <Navigate to="/login" replace />}
         />
 
         {/* Catálogo */}

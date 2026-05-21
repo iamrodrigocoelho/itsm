@@ -163,6 +163,20 @@ export interface TicketHistoryDto {
   createdAt: string;
 }
 
+// Dashboard / Reports
+export interface DashboardStatsDto {
+  totalTickets: number;
+  pendingApproval: number;
+  integrationFailures: number;
+  avgApprovalTimeHours: number | null;
+  avgCompletionTimeHours: number | null;
+  approvalRate: number | null;
+  byStatus: { status: string; count: number }[];
+  byDay: { date: string; count: number }[];
+  byOriginStore: { codLoja: number; count: number }[];
+  byApprover: { approverNome: string; avgHours: number; count: number }[];
+}
+
 // Pagination
 export interface PaginatedResponseDto<T> {
   data: T[];

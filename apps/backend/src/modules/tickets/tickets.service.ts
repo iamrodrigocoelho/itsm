@@ -200,20 +200,17 @@ export class TicketsService {
     return toDetail(full);
   }
 
-  async list(
+  private async buildListWhere(
     input: ListTicketsInput,
     actorUserId: string,
     actorRole: string,
-  ): Promise<PaginatedResponseDto<TicketSummaryDto>> {
-    const { page, limit, status, catalogSlug, requesterId } = input;
-    const skip = (page - 1) * limit;
+  ) {
+    const { status, catalogSlug, requesterId, approverId, numero, openedAtFrom, openedAtTo, completedAtFrom, completedAtTo } = input;
 
-    // Build status filter
     const statusFilter = status
       ? { status: { in: status.split(',').map((s) => s.trim()) as never[] } }
       : {};
 
-    // Build catalog filter
     let catalogFilter = {};
     if (catalogSlug) {
       const catalog = await this.prisma.serviceCatalog.findUnique({
@@ -223,7 +220,6 @@ export class TicketsService {
       if (catalog) catalogFilter = { catalogId: catalog.id };
     }
 
-    // Scope by role
     let scopeFilter = {};
     if (actorRole === 'COLABORADOR') {
       scopeFilter = { requesterId: actorUserId };
@@ -234,11 +230,40 @@ export class TicketsService {
           { approverId: actorUserId },
         ],
       };
-    } else if (requesterId) {
-      scopeFilter = { requesterId };
+    } else {
+      const extra: Record<string, unknown> = {};
+      if (requesterId) extra['requesterId'] = requesterId;
+      if (approverId) extra['approverId'] = approverId;
+      scopeFilter = extra;
     }
 
-    const where = { ...statusFilter, ...catalogFilter, ...scopeFilter };
+    const dateFilter: Record<string, unknown> = {};
+    if (openedAtFrom || openedAtTo) {
+      dateFilter['openedAt'] = {
+        ...(openedAtFrom ? { gte: new Date(openedAtFrom) } : {}),
+        ...(openedAtTo ? { lte: new Date(openedAtTo) } : {}),
+      };
+    }
+    if (completedAtFrom || completedAtTo) {
+      dateFilter['completedAt'] = {
+        ...(completedAtFrom ? { gte: new Date(completedAtFrom) } : {}),
+        ...(completedAtTo ? { lte: new Date(completedAtTo) } : {}),
+      };
+    }
+
+    const numeroFilter = numero ? { numero } : {};
+
+    return { ...statusFilter, ...catalogFilter, ...scopeFilter, ...dateFilter, ...numeroFilter };
+  }
+
+  async list(
+    input: ListTicketsInput,
+    actorUserId: string,
+    actorRole: string,
+  ): Promise<PaginatedResponseDto<TicketSummaryDto>> {
+    const { page, limit } = input;
+    const skip = (page - 1) * limit;
+    const where = await this.buildListWhere(input, actorUserId, actorRole);
 
     const [data, total] = await Promise.all([
       this.prisma.ticket.findMany({
@@ -258,6 +283,58 @@ export class TicketsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async exportCsv(
+    input: ListTicketsInput,
+    actorUserId: string,
+    actorRole: string,
+  ): Promise<string> {
+    const where = await this.buildListWhere(input, actorUserId, actorRole);
+
+    const tickets = await this.prisma.ticket.findMany({
+      where,
+      orderBy: { openedAt: 'desc' },
+      take: 10000,
+      include: {
+        catalog: { select: { nome: true } },
+        requester: { select: { nome: true, matricula: true } },
+        approver: { select: { nome: true } },
+      },
+    });
+
+    const STATUS_LABELS: Record<string, string> = {
+      RASCUNHO: 'Rascunho',
+      AGUARDANDO_APROVACAO: 'Aguardando Aprovação',
+      APROVADO: 'Aprovado',
+      EM_PROCESSAMENTO: 'Em Processamento',
+      CONCLUIDO: 'Concluído',
+      REJEITADO: 'Rejeitado',
+      CANCELADO: 'Cancelado',
+      FALHA_INTEGRACAO: 'Falha de Integração',
+    };
+
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"`
+        : s;
+    };
+
+    const header = ['Número', 'Catálogo', 'Status', 'Solicitante', 'Matrícula', 'Aprovador', 'Aberto em', 'Atualizado em', 'Concluído em'];
+    const rows = tickets.map((t) => [
+      t.numero,
+      t.catalog.nome,
+      STATUS_LABELS[t.status] ?? t.status,
+      t.requester.nome,
+      t.requester.matricula,
+      t.approver?.nome ?? '',
+      t.openedAt.toISOString(),
+      t.updatedAt.toISOString(),
+      t.completedAt?.toISOString() ?? '',
+    ].map(escape).join(','));
+
+    return [header.join(','), ...rows].join('\n');
   }
 
   async getById(id: string, actorUserId: string, actorRole: string): Promise<TicketDetailDto> {

@@ -14,6 +14,7 @@ import type {
   CreateTicketDto,
   TicketSummaryDto,
   TicketDetailDto,
+  DashboardStatsDto,
 } from '@itsm/shared-types';
 
 export const api = axios.create({
@@ -96,12 +97,24 @@ export const catalogsApi = {
     api.get<ServiceCatalogDto>(`/catalogs/${slug}`).then((r) => r.data),
 };
 
+export type TicketsListParams = {
+  page?: number;
+  limit?: number;
+  status?: string;
+  catalogSlug?: string;
+  requesterId?: string;
+  approverId?: string;
+  numero?: number;
+  openedAtFrom?: string;
+  openedAtTo?: string;
+  completedAtFrom?: string;
+  completedAtTo?: string;
+};
+
 export const ticketsApi = {
   create: (data: CreateTicketDto) =>
     api.post<TicketDetailDto>('/tickets', data).then((r) => r.data),
-  list: (params?: {
-    page?: number; limit?: number; status?: string; catalogSlug?: string; requesterId?: string;
-  }) =>
+  list: (params?: TicketsListParams) =>
     api.get<PaginatedResponseDto<TicketSummaryDto>>('/tickets', { params }).then((r) => r.data),
   getById: (id: string) =>
     api.get<TicketDetailDto>(`/tickets/${id}`).then((r) => r.data),
@@ -113,4 +126,27 @@ export const ticketsApi = {
     api.post<TicketDetailDto>(`/tickets/${id}/reject`, { reason }).then((r) => r.data),
   reprocess: (id: string) =>
     api.post<TicketDetailDto>(`/tickets/${id}/reprocess`).then((r) => r.data),
+  exportCsv: async (params?: TicketsListParams): Promise<void> => {
+    const token = localStorage.getItem('accessToken');
+    const qs = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+      });
+    }
+    const url = `/api/tickets/export?${qs.toString()}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Falha ao exportar');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `chamados-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+};
+
+export const reportsApi = {
+  getDashboard: (params?: { periodDays?: number; catalogSlug?: string }) =>
+    api.get<DashboardStatsDto>('/reports/dashboard', { params }).then((r) => r.data),
 };

@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, ChevronRight } from 'lucide-react';
+import { Plus, ChevronRight, Download, Filter, X } from 'lucide-react';
 import { ticketsApi } from '@/lib/api';
+import type { TicketsListParams } from '@/lib/api';
 import type { TicketSummaryDto } from '@itsm/shared-types';
 import { TicketStatus } from '@itsm/shared-types';
 import { formatDate } from '@/lib/utils';
@@ -29,17 +30,7 @@ const STATUS_CHIP: Record<string, string> = {
   FALHA_INTEGRACAO: 'text-semantic-error border-semantic-error/30',
 };
 
-export function StatusChip({ status }: { status: string }) {
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-xs text-caption font-medium border ${STATUS_CHIP[status] ?? 'text-ink-muted border-hairline'}`}
-    >
-      {STATUS_LABELS[status] ?? status}
-    </span>
-  );
-}
-
-const FILTER_OPTIONS = [
+const QUICK_STATUS_OPTIONS = [
   { value: '', label: 'Todos' },
   { value: TicketStatus.AGUARDANDO_APROVACAO, label: 'Aguardando Aprovação' },
   { value: TicketStatus.APROVADO, label: 'Aprovado' },
@@ -49,6 +40,16 @@ const FILTER_OPTIONS = [
   { value: TicketStatus.CANCELADO, label: 'Cancelado' },
   { value: TicketStatus.FALHA_INTEGRACAO, label: 'Falha de Integração' },
 ];
+
+export function StatusChip({ status }: { status: string }) {
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-xs text-caption font-medium border ${STATUS_CHIP[status] ?? 'text-ink-muted border-hairline'}`}
+    >
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
 
 function TicketRow({ ticket }: { ticket: TicketSummaryDto }) {
   return (
@@ -83,19 +84,134 @@ function TicketRow({ ticket }: { ticket: TicketSummaryDto }) {
   );
 }
 
+function AdvancedFilters({
+  filters,
+  onChange,
+  onClose,
+}: {
+  filters: TicketsListParams;
+  onChange: (f: TicketsListParams) => void;
+  onClose: () => void;
+}) {
+  const [local, setLocal] = useState<TicketsListParams>(filters);
+
+  const field = (key: keyof TicketsListParams, label: string, type = 'text') => (
+    <label className="flex flex-col gap-1">
+      <span className="text-caption text-ink-muted">{label}</span>
+      <input
+        type={type}
+        value={(local[key] as string | number | undefined) ?? ''}
+        onChange={(e) => setLocal((p) => ({ ...p, [key]: e.target.value || undefined }))}
+        className="text-input text-body-sm"
+        placeholder={type === 'date' ? 'aaaa-mm-dd' : ''}
+      />
+    </label>
+  );
+
+  return (
+    <div className="bg-surface-1 border border-hairline rounded-lg p-spacing-lg flex flex-col gap-spacing-md">
+      <div className="flex items-center justify-between">
+        <p className="text-body-sm font-medium text-ink flex items-center gap-1.5">
+          <Filter size={14} /> Filtros avançados
+        </p>
+        <button type="button" onClick={onClose} className="text-ink-muted hover:text-ink">
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-spacing-sm">
+        {field('numero', 'Número do chamado', 'number')}
+        <label className="flex flex-col gap-1">
+          <span className="text-caption text-ink-muted">Status</span>
+          <select
+            value={local.status ?? ''}
+            onChange={(e) => setLocal((p) => ({ ...p, status: e.target.value || undefined }))}
+            className="text-input text-body-sm"
+          >
+            <option value="">Todos</option>
+            {QUICK_STATUS_OPTIONS.slice(1).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {field('openedAtFrom', 'Aberto a partir de', 'date')}
+        {field('openedAtTo', 'Aberto até', 'date')}
+        {field('completedAtFrom', 'Concluído a partir de', 'date')}
+        {field('completedAtTo', 'Concluído até', 'date')}
+      </div>
+
+      <div className="flex items-center gap-spacing-sm">
+        <button
+          type="button"
+          onClick={() => {
+            // Convert date-only strings to ISO datetime for the API
+            const toISO = (v?: string, end = false) =>
+              v ? `${v}T${end ? '23:59:59' : '00:00:00'}.000Z` : undefined;
+            onChange({
+              ...local,
+              openedAtFrom: toISO(local.openedAtFrom as string | undefined),
+              openedAtTo: toISO(local.openedAtTo as string | undefined, true),
+              completedAtFrom: toISO(local.completedAtFrom as string | undefined),
+              completedAtTo: toISO(local.completedAtTo as string | undefined, true),
+            });
+            onClose();
+          }}
+          className="btn-primary text-caption"
+        >
+          Aplicar filtros
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setLocal({});
+            onChange({});
+          }}
+          className="btn-secondary text-caption"
+        >
+          Limpar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function TicketsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<TicketsListParams>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const params: TicketsListParams = {
+    page,
+    limit: 20,
+    status: advancedFilters.status ?? (statusFilter || undefined),
+    ...advancedFilters,
+  };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['tickets', page, statusFilter],
-    queryFn: () =>
-      ticketsApi.list({ page, limit: 20, status: statusFilter || undefined }),
+    queryKey: ['tickets', params],
+    queryFn: () => ticketsApi.list(params),
   });
+
+  const hasAdvancedActive = Object.values(advancedFilters).some((v) => v !== undefined && v !== '');
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await ticketsApi.exportCsv(params);
+    } catch {
+      // Error is swallowed; user sees no file download
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-spacing-lg">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-spacing-sm">
         <div>
           <h1 className="text-headline font-semibold text-ink">Chamados</h1>
           {data && (
@@ -105,24 +221,37 @@ export function TicketsPage() {
           )}
         </div>
 
-        <Link to="/catalogo" className="btn-primary flex items-center gap-2">
-          <Plus size={14} />
-          Novo chamado
-        </Link>
+        <div className="flex items-center gap-spacing-sm">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting}
+            className="btn-secondary flex items-center gap-1.5 text-caption disabled:opacity-50"
+          >
+            <Download size={13} />
+            {exporting ? 'Exportando…' : 'Exportar CSV'}
+          </button>
+          <Link to="/catalogo" className="btn-primary flex items-center gap-2">
+            <Plus size={14} />
+            Novo chamado
+          </Link>
+        </div>
       </div>
 
+      {/* Quick status filter pills */}
       <div className="flex items-center gap-spacing-sm flex-wrap">
-        {FILTER_OPTIONS.map((opt) => (
+        {QUICK_STATUS_OPTIONS.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => {
               setStatusFilter(opt.value);
+              setAdvancedFilters((p) => ({ ...p, status: opt.value || undefined }));
               setPage(1);
             }}
             className={[
               'px-spacing-sm py-1 rounded-xs text-caption font-medium border transition-colors',
-              statusFilter === opt.value
+              (advancedFilters.status ?? statusFilter) === opt.value
                 ? 'bg-ink text-on-primary border-ink'
                 : 'bg-surface-1 text-ink-muted border-hairline hover:text-ink hover:border-ink-muted',
             ].join(' ')}
@@ -130,7 +259,33 @@ export function TicketsPage() {
             {opt.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((s) => !s)}
+          className={[
+            'ml-auto px-spacing-sm py-1 rounded-xs text-caption font-medium border flex items-center gap-1 transition-colors',
+            hasAdvancedActive
+              ? 'bg-ink text-on-primary border-ink'
+              : 'bg-surface-1 text-ink-muted border-hairline hover:text-ink hover:border-ink-muted',
+          ].join(' ')}
+        >
+          <Filter size={12} />
+          Filtros avançados
+          {hasAdvancedActive && ' •'}
+        </button>
       </div>
+
+      {showAdvanced && (
+        <AdvancedFilters
+          filters={advancedFilters}
+          onChange={(f) => {
+            setAdvancedFilters(f);
+            setStatusFilter(f.status ?? '');
+            setPage(1);
+          }}
+          onClose={() => setShowAdvanced(false)}
+        />
+      )}
 
       {isLoading && (
         <div className="p-spacing-xl text-center text-ink-muted text-body-sm">Carregando…</div>
